@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CountView">
+        <attr name="count_editable" format="boolean"/>
+        <attr name="min_count" format="integer"/>
+        <attr name="max_count" format="integer"/>
+        <attr name="max_notice_str" format="string"/>
+        <attr name="min_notice_str" format="string"/>
+    </declare-styleable>
+</resources>
