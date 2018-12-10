@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Library</string>
+    <string name="notice_min">已经达到最小值</string>
+    <string name="notice_max">已经达到最大值</string>
 </resources>

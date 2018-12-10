@@ -14,6 +14,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:count_editable="true"
+        app:max_notice_str="@string/notice_max"
+        app:min_notice_str="@string/notice_min"
         />
 
 </android.support.constraint.ConstraintLayout>
