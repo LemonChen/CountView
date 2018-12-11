@@ -4,11 +4,13 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.support.annotation.Nullable;
 import android.text.Editable;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.DigitsKeyListener;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -22,7 +24,7 @@ public class CountView extends LinearLayout {
 
     private int count = 0;
     private int MIN_COUNT = 0;
-    private int MAX_COUNT = 10;
+    private int MAX_COUNT = 9999;
     private boolean countEditAble = false;
     private String maxNotice;
     private String minNotice;
@@ -95,12 +97,15 @@ public class CountView extends LinearLayout {
                 }
             }
         });
-        MIN_COUNT = arr.getInt(R.styleable.CountView_min_count,0);
-        MAX_COUNT = arr.getInt(R.styleable.CountView_max_count,10);
+        MIN_COUNT = arr.getInt(R.styleable.CountView_min_count,MIN_COUNT);
+        MAX_COUNT = arr.getInt(R.styleable.CountView_max_count,MAX_COUNT);
         countEditAble = arr.getBoolean(R.styleable.CountView_count_editable,false);
         maxNotice = arr.getString(R.styleable.CountView_max_notice_str);
         minNotice = arr.getString(R.styleable.CountView_min_notice_str);
         etCount.setKeyListener(DigitsKeyListener.getInstance("0123456789"));
+        TextPaint tp = etCount.getPaint();
+        float textWidth = tp.measureText("0");
+        etCount.setWidth((int) (textWidth * ((etCount.getText().toString().length() + 2))));
         etCount.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -138,52 +143,45 @@ public class CountView extends LinearLayout {
                     }
                 }
                 count = Integer.parseInt(etCount.getText().toString());
+                TextPaint tp = etCount.getPaint();
+                float textWidth = tp.measureText("0");
+                etCount.setWidth((int) (textWidth * ((etCount.getText().toString().length() + 2))));
             }
         });
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        int sizeWidth = MeasureSpec.getSize(widthMeasureSpec);
+        int sizeHeight = MeasureSpec.getSize(heightMeasureSpec);
+        Log.i(TAG,"sizeHeight:"+sizeHeight);
+        if(heightMode == MeasureSpec.EXACTLY){
+            LinearLayout.LayoutParams addParams = (LinearLayout.LayoutParams) ivAdd.getLayoutParams();
+            LinearLayout.LayoutParams reduceParams = (LinearLayout.LayoutParams) ivReduce.getLayoutParams();
+            LinearLayout.LayoutParams etParams = (LinearLayout.LayoutParams) etCount.getLayoutParams();
+            addParams.height = sizeHeight;
+            addParams.width = sizeHeight;
+            ivAdd.setLayoutParams(addParams);
+            reduceParams.height = sizeHeight;
+            reduceParams.width = sizeHeight;
+            ivReduce.setLayoutParams(reduceParams);
 
-    }
-
-    private int measureWidth(int measureSpec) {
-        int result = 0;
-        int specMode = MeasureSpec.getMode(measureSpec);
-        int specSize = MeasureSpec.getSize(measureSpec);
-        if (specMode == MeasureSpec.EXACTLY) {
-            // We were told how big to be
-            result = specSize;
+            etCount.setTextSize(TypedValue.COMPLEX_UNIT_PX,sizeHeight/4*3);
+            TextPaint tp = etCount.getPaint();
+            float textWidth = tp.measureText("0");
+            int etWidth = (int) (textWidth * ((etCount.getText().toString().length() + 2)));
+            etParams.height = sizeHeight;
+            etParams.width = etWidth;
+            etCount.setLayoutParams(etParams);
+            measureChildren(widthMeasureSpec,heightMeasureSpec);
+            setMeasuredDimension(sizeHeight*2 + etWidth,sizeHeight);
         } else {
-            // Measure the text
-
-            if (specMode == MeasureSpec.AT_MOST) {
-                // Respect AT_MOST value if that was what is called for by measureSpec
-                result = Math.min(result, specSize);
-            }
+            super.onMeasure(widthMeasureSpec,heightMeasureSpec);
         }
-        return result;
     }
 
-    private int measureHeight(int measureSpec) {
-        int result = 0;
-        int specMode = MeasureSpec.getMode(measureSpec);
-        int specSize = MeasureSpec.getSize(measureSpec);
-
-        if (specMode == MeasureSpec.EXACTLY) {
-            // We were told how big to be
-            result = specSize;
-        } else {
-            // Measure the text (beware: ascent is a negative number)
-
-            if (specMode == MeasureSpec.AT_MOST) {
-                // Respect AT_MOST value if that was what is called for by measureSpec
-                result = Math.min(result, specSize);
-            }
-        }
-        return result;
-    }
 
     private void showToast(String str){
         Toast.makeText(CountView.this.getContext(),str,Toast.LENGTH_SHORT).show();
