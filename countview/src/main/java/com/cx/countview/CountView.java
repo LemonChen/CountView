@@ -1,5 +1,7 @@
 package com.cx.countview;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.support.annotation.Nullable;
@@ -13,11 +15,9 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.Toast;
+import android.widget.*;
 
 public class CountView extends LinearLayout {
     final static String TAG = "logtag_CountView";
@@ -31,6 +31,10 @@ public class CountView extends LinearLayout {
     private ImageView ivAdd;
     private ImageView ivReduce;
     private EditText etCount;
+    private int imageWidth;
+    private int etWidht;
+    private boolean ifShowAnimator = false;
+
     private OnClickListener addListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -39,8 +43,10 @@ public class CountView extends LinearLayout {
                     showToast(maxNotice);
             }else if(count == MIN_COUNT){
                 showView();
+                showDropAnimator(0,0);
                 setCount(count + 1);
             }else {
+                showDropAnimator(0,0);
                 setCount(count + 1);
             }
             clearEditFocus();
@@ -53,7 +59,7 @@ public class CountView extends LinearLayout {
             if(count - 1 <= MIN_COUNT){
                 hideView();
                 setCount(MIN_COUNT);
-                if(!TextUtils.isEmpty(minNotice))
+                if(!TextUtils.isEmpty(minNotice) && ifShowAnimator)
                     showToast(minNotice);
             }else {
                 setCount(count - 1);
@@ -102,6 +108,7 @@ public class CountView extends LinearLayout {
         countEditAble = arr.getBoolean(R.styleable.CountView_count_editable,false);
         maxNotice = arr.getString(R.styleable.CountView_max_notice_str);
         minNotice = arr.getString(R.styleable.CountView_min_notice_str);
+        ifShowAnimator = arr.getBoolean(R.styleable.CountView_show_hide_animator,false);
         etCount.setKeyListener(DigitsKeyListener.getInstance("0123456789"));
         TextPaint tp = etCount.getPaint();
         float textWidth = tp.measureText("0");
@@ -156,32 +163,39 @@ public class CountView extends LinearLayout {
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
         int sizeWidth = MeasureSpec.getSize(widthMeasureSpec);
         int sizeHeight = MeasureSpec.getSize(heightMeasureSpec);
-        Log.i(TAG,"sizeHeight:"+sizeHeight);
         if(heightMode == MeasureSpec.EXACTLY){
-            LinearLayout.LayoutParams addParams = (LinearLayout.LayoutParams) ivAdd.getLayoutParams();
-            LinearLayout.LayoutParams reduceParams = (LinearLayout.LayoutParams) ivReduce.getLayoutParams();
-            LinearLayout.LayoutParams etParams = (LinearLayout.LayoutParams) etCount.getLayoutParams();
+            RelativeLayout.LayoutParams addParams = (RelativeLayout.LayoutParams) ivAdd.getLayoutParams();
+            RelativeLayout.LayoutParams reduceParams = (RelativeLayout.LayoutParams) ivReduce.getLayoutParams();
+            RelativeLayout.LayoutParams etParams = (RelativeLayout.LayoutParams) etCount.getLayoutParams();
             addParams.height = sizeHeight;
             addParams.width = sizeHeight;
             ivAdd.setLayoutParams(addParams);
             reduceParams.height = sizeHeight;
             reduceParams.width = sizeHeight;
             ivReduce.setLayoutParams(reduceParams);
-
+            imageWidth = sizeHeight;
             etCount.setTextSize(TypedValue.COMPLEX_UNIT_PX,sizeHeight/4*3);
             TextPaint tp = etCount.getPaint();
             float textWidth = tp.measureText("0");
-            int etWidth = (int) (textWidth * ((etCount.getText().toString().length() + 2)));
+            etWidht = (int) (textWidth * ((etCount.getText().toString().length() + 2)));
             etParams.height = sizeHeight;
-            etParams.width = etWidth;
+            etParams.width = etWidht;
             etCount.setLayoutParams(etParams);
             measureChildren(widthMeasureSpec,heightMeasureSpec);
-            setMeasuredDimension(sizeHeight*2 + etWidth,sizeHeight);
+            setMeasuredDimension(sizeHeight * 2 + etWidht, sizeHeight);
         } else {
             super.onMeasure(widthMeasureSpec,heightMeasureSpec);
         }
     }
 
+    private void showDropAnimator(int x, int y){
+        ImageView iv = new ImageView(this.getContext());
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) ivAdd.getLayoutParams();
+        params.setMarginEnd(10);
+        iv.setLayoutParams(params);
+        iv.setImageDrawable(this.getContext().getResources().getDrawable(R.drawable.ic_add_animator));
+        this.addView(iv);
+    }
 
     private void showToast(String str){
         Toast.makeText(CountView.this.getContext(),str,Toast.LENGTH_SHORT).show();
@@ -204,11 +218,37 @@ public class CountView extends LinearLayout {
     }
 
     public void showView(){
-
+        ObjectAnimator ivAnimator = ObjectAnimator.ofFloat(ivReduce
+                ,"translationX", etWidht + imageWidth,0);
+        ObjectAnimator etAnimator = ObjectAnimator.ofFloat(etCount
+                ,"translationX", imageWidth,0);
+        ObjectAnimator rotation1 = ObjectAnimator.ofFloat(ivReduce, "rotation", 0, 135, 0);
+        ObjectAnimator reduceAlhpa = ObjectAnimator.ofFloat(ivReduce,"alpha",0,1);
+        ObjectAnimator etAlhpa = ObjectAnimator.ofFloat(ivReduce,"alpha",0,1);
+        ivReduce.setVisibility(View.VISIBLE);
+        etCount.setVisibility(View.VISIBLE);
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setDuration(800);//动画时长
+        //animatorSet.setInterpolator(new OvershootInterpolator());
+        animatorSet.playTogether(rotation1,ivAnimator,etAnimator,reduceAlhpa,etAlhpa);
+        animatorSet.start();
     }
 
     public void hideView(){
-
+        ObjectAnimator ivAnimator = ObjectAnimator.ofFloat(ivReduce
+                ,"translationX", 0,etWidht + imageWidth);
+        ObjectAnimator etAnimator = ObjectAnimator.ofFloat(etCount
+                ,"translationX", 0,imageWidth);
+        ObjectAnimator rotation1 = ObjectAnimator.ofFloat(ivReduce, "rotation", 0, 135, 0);
+        ObjectAnimator reduceAlhpa = ObjectAnimator.ofFloat(ivReduce,"alpha",1,0);
+        ObjectAnimator etAlhpa = ObjectAnimator.ofFloat(ivReduce,"alpha",1,0);
+        ivReduce.setVisibility(View.VISIBLE);
+        etCount.setVisibility(View.VISIBLE);
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setDuration(800);//动画时长
+        //animatorSet.setInterpolator(new OvershootInterpolator());
+        animatorSet.playTogether(rotation1,ivAnimator,etAnimator,reduceAlhpa,etAlhpa);
+        animatorSet.start();
     }
 
     private void changeEditFocus(){

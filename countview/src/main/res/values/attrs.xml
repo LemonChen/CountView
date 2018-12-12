@@ -6,5 +6,6 @@
         <attr name="max_count" format="integer"/>
         <attr name="max_notice_str" format="string"/>
         <attr name="min_notice_str" format="string"/>
+        <attr name="show_hide_animator" format="boolean"/>
     </declare-styleable>
 </resources>
